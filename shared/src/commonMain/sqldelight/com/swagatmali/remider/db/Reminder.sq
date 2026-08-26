@@ -1,0 +1,56 @@
+-- Reminder table + queries. Compiled by SQLDelight into the
+-- com.swagatmali.remider.db package (see shared/build.gradle.kts).
+--
+-- Times are stored as ISO-8601 TEXT and parsed in the mapper:
+--   dueDateTime -> LocalDateTime.toString()  (e.g. 2026-08-26T09:00)
+--   timeZone    -> TimeZone.id               (e.g. Europe/London)
+--   createdAt/updatedAt -> Instant.toString() (UTC ISO-8601)
+-- Booleans are stored as INTEGER (0 = false, 1 = true), converted in ReminderMappers.
+
+CREATE TABLE ReminderEntity (
+    id          TEXT    NOT NULL PRIMARY KEY,
+    title       TEXT    NOT NULL,
+    notes       TEXT,
+    dueDateTime TEXT    NOT NULL,
+    timeZone    TEXT    NOT NULL,
+    isCompleted INTEGER NOT NULL DEFAULT 0,
+    createdAt   TEXT    NOT NULL,
+    updatedAt   TEXT    NOT NULL,
+    isDeleted   INTEGER NOT NULL DEFAULT 0
+);
+
+-- Index the common list query (active rows ordered by due time).
+CREATE INDEX reminder_active_due ON ReminderEntity(isDeleted, dueDateTime);
+
+selectAllActive:
+SELECT *
+FROM ReminderEntity
+WHERE isDeleted = 0
+ORDER BY dueDateTime ASC;
+
+selectById:
+SELECT *
+FROM ReminderEntity
+WHERE id = ?;
+
+upsert:
+INSERT OR REPLACE INTO ReminderEntity(
+    id, title, notes, dueDateTime, timeZone, isCompleted, createdAt, updatedAt, isDeleted
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+setCompleted:
+UPDATE ReminderEntity
+SET isCompleted = ?, updatedAt = ?
+WHERE id = ?;
+
+softDelete:
+UPDATE ReminderEntity
+SET isDeleted = 1, updatedAt = ?
+WHERE id = ?;
+
+-- For Phase-later Drive sync: rows changed since the last successful backup.
+selectChangedSince:
+SELECT *
+FROM ReminderEntity
+WHERE updatedAt > ?;

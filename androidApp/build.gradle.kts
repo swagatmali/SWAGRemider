@@ -15,6 +15,9 @@ dependencies {
 
     implementation(libs.androidx.activity.compose)
 
+    // Start the shared Koin graph with the Android Context (androidContext/androidLogger)
+    implementation(libs.koin.android)
+
     implementation(libs.compose.uiToolingPreview)
     debugImplementation(libs.compose.uiTooling)
 }
