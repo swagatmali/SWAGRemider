@@ -2,6 +2,8 @@ package com.swagatmali.remider.presentation.reminderlist
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -10,10 +12,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -25,9 +29,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.swagatmali.remider.domain.model.RepeatInterval
 import com.swagatmali.remider.presentation.util.formatTime
+import com.swagatmali.remider.presentation.util.label
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -55,6 +62,7 @@ fun ReminderEditorSheet(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun EditorContent(
     editor: EditorState,
@@ -62,6 +70,8 @@ private fun EditorContent(
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+    var showEndTimePicker by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp),
@@ -101,6 +111,55 @@ private fun EditorContent(
             }
         }
 
+        // Repeat cadence (presets only).
+        Text("Repeat", style = MaterialTheme.typography.titleSmall)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            RepeatInterval.entries.forEach { option ->
+                FilterChip(
+                    selected = editor.repeat == option,
+                    onClick = { onIntent(ReminderListIntent.EditorRepeatChanged(option)) },
+                    label = { Text(option.label()) },
+                )
+            }
+        }
+
+        // End bound — only relevant when the reminder repeats.
+        if (editor.repeat.repeats) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text("Ends on a date", modifier = Modifier.weight(1f))
+                Switch(
+                    checked = editor.hasEnd,
+                    onCheckedChange = { onIntent(ReminderListIntent.EditorEndEnabledChanged(it)) },
+                )
+            }
+            if (editor.hasEnd) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    OutlinedButton(onClick = { showEndDatePicker = true }, modifier = Modifier.weight(1f)) {
+                        Text(editor.endDate.toString())
+                    }
+                    OutlinedButton(onClick = { showEndTimePicker = true }, modifier = Modifier.weight(1f)) {
+                        Text(formatTime(editor.endTime))
+                    }
+                }
+                Text(
+                    "Repeats until this time, or until you mark it done — whichever is first.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            } else {
+                Text(
+                    "Repeats until you mark it done.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+
         Button(
             onClick = { onIntent(ReminderListIntent.EditorSaveClicked) },
             enabled = !editor.isSaving,
@@ -122,6 +181,20 @@ private fun EditorContent(
             initialTime = editor.time,
             onTimeSelected = { onIntent(ReminderListIntent.EditorTimeChanged(it)) },
             onDismiss = { showTimePicker = false },
+        )
+    }
+    if (showEndDatePicker) {
+        DueDatePickerDialog(
+            initialDate = editor.endDate,
+            onDateSelected = { onIntent(ReminderListIntent.EditorEndDateChanged(it)) },
+            onDismiss = { showEndDatePicker = false },
+        )
+    }
+    if (showEndTimePicker) {
+        DueTimePickerDialog(
+            initialTime = editor.endTime,
+            onTimeSelected = { onIntent(ReminderListIntent.EditorEndTimeChanged(it)) },
+            onDismiss = { showEndTimePicker = false },
         )
     }
 }

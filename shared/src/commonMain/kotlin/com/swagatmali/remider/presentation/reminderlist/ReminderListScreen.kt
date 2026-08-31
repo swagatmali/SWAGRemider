@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.swagatmali.remider.domain.model.Reminder
 import com.swagatmali.remider.presentation.util.formatDueDateTime
+import com.swagatmali.remider.presentation.util.label
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import org.koin.compose.viewmodel.koinViewModel
@@ -135,6 +136,13 @@ private fun ReminderRow(
                     text = formatDueDateTime(reminder.dueDateTime),
                     style = MaterialTheme.typography.bodySmall,
                 )
+                if (reminder.repeat.repeats) {
+                    Text(
+                        text = "↻ ${reminder.repeat.label()}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
                 val notes = reminder.notes
                 if (!notes.isNullOrBlank()) {
                     Text(

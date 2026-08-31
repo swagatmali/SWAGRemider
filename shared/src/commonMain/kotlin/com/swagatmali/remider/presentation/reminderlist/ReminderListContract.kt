@@ -2,6 +2,7 @@ package com.swagatmali.remider.presentation.reminderlist
 
 import com.swagatmali.remider.domain.model.Reminder
 import com.swagatmali.remider.domain.model.ReminderId
+import com.swagatmali.remider.domain.model.RepeatInterval
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 
@@ -32,6 +33,13 @@ data class EditorState(
     val notes: String = "",
     val date: LocalDate,
     val time: LocalTime,
+    /** Repeat cadence chosen in the form; [RepeatInterval.NONE] = fires once. */
+    val repeat: RepeatInterval = RepeatInterval.NONE,
+    /** Whether the (only relevant when repeating) end date/time is set. */
+    val hasEnd: Boolean = false,
+    /** End bound, split into date + time to bind separate pickers. Used only when [repeat] repeats and [hasEnd]. */
+    val endDate: LocalDate,
+    val endTime: LocalTime,
     val isSaving: Boolean = false,
     val titleError: Boolean = false,
 ) {
@@ -51,6 +59,10 @@ sealed interface ReminderListIntent {
     data class EditorNotesChanged(val notes: String) : ReminderListIntent
     data class EditorDateChanged(val date: LocalDate) : ReminderListIntent
     data class EditorTimeChanged(val time: LocalTime) : ReminderListIntent
+    data class EditorRepeatChanged(val repeat: RepeatInterval) : ReminderListIntent
+    data class EditorEndEnabledChanged(val enabled: Boolean) : ReminderListIntent
+    data class EditorEndDateChanged(val date: LocalDate) : ReminderListIntent
+    data class EditorEndTimeChanged(val time: LocalTime) : ReminderListIntent
     data object EditorSaveClicked : ReminderListIntent
 }
 

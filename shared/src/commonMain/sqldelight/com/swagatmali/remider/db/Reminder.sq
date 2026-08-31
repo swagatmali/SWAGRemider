@@ -2,21 +2,30 @@
 -- com.swagatmali.remider.db package (see shared/build.gradle.kts).
 --
 -- Times are stored as ISO-8601 TEXT and parsed in the mapper:
---   dueDateTime -> LocalDateTime.toString()  (e.g. 2026-08-26T09:00)
---   timeZone    -> TimeZone.id               (e.g. Europe/London)
---   createdAt/updatedAt -> Instant.toString() (UTC ISO-8601)
+--   dueDateTime  -> LocalDateTime.toString()  (e.g. 2026-08-26T09:00)
+--   timeZone     -> TimeZone.id               (e.g. Europe/London)
+--   createdAt/updatedAt/snoozedUntil/repeatUntil -> Instant.toString() (UTC ISO-8601)
+-- snoozedUntil is nullable (NULL = not snoozed).
+-- repeatInterval is nullable RepeatInterval.name (NULL = does not repeat);
+-- repeatUntil is the nullable end bound for a repeating reminder (NULL = no limit).
 -- Booleans are stored as INTEGER (0 = false, 1 = true), converted in ReminderMappers.
+--
+-- Schema history: v1 = initial; v2 = added snoozedUntil (see 1.sqm);
+--                 v3 = added repeatInterval + repeatUntil (see 2.sqm).
 
 CREATE TABLE ReminderEntity (
-    id          TEXT    NOT NULL PRIMARY KEY,
-    title       TEXT    NOT NULL,
-    notes       TEXT,
-    dueDateTime TEXT    NOT NULL,
-    timeZone    TEXT    NOT NULL,
-    isCompleted INTEGER NOT NULL DEFAULT 0,
-    createdAt   TEXT    NOT NULL,
-    updatedAt   TEXT    NOT NULL,
-    isDeleted   INTEGER NOT NULL DEFAULT 0
+    id             TEXT    NOT NULL PRIMARY KEY,
+    title          TEXT    NOT NULL,
+    notes          TEXT,
+    dueDateTime    TEXT    NOT NULL,
+    timeZone       TEXT    NOT NULL,
+    isCompleted    INTEGER NOT NULL DEFAULT 0,
+    createdAt      TEXT    NOT NULL,
+    updatedAt      TEXT    NOT NULL,
+    isDeleted      INTEGER NOT NULL DEFAULT 0,
+    snoozedUntil   TEXT,
+    repeatInterval TEXT,
+    repeatUntil    TEXT
 );
 
 -- Index the common list query (active rows ordered by due time).
@@ -35,9 +44,9 @@ WHERE id = ?;
 
 upsert:
 INSERT OR REPLACE INTO ReminderEntity(
-    id, title, notes, dueDateTime, timeZone, isCompleted, createdAt, updatedAt, isDeleted
+    id, title, notes, dueDateTime, timeZone, isCompleted, createdAt, updatedAt, isDeleted, snoozedUntil, repeatInterval, repeatUntil
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 setCompleted:
 UPDATE ReminderEntity

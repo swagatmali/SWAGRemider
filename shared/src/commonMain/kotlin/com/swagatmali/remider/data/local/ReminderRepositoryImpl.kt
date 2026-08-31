@@ -46,6 +46,9 @@ class ReminderRepositoryImpl(
             createdAt = reminder.createdAt.toString(),
             updatedAt = reminder.updatedAt.toString(),
             isDeleted = if (reminder.isDeleted) 1L else 0L,
+            snoozedUntil = reminder.snoozedUntil?.toString(),
+            repeatInterval = if (reminder.repeat.repeats) reminder.repeat.name else null,
+            repeatUntil = reminder.repeatUntil?.toString(),
         )
     }
 

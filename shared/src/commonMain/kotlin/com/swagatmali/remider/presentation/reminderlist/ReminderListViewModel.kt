@@ -3,6 +3,7 @@ package com.swagatmali.remider.presentation.reminderlist
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swagatmali.remider.domain.model.ReminderId
+import com.swagatmali.remider.domain.model.RepeatInterval
 import com.swagatmali.remider.domain.usecase.CreateReminderUseCase
 import com.swagatmali.remider.domain.usecase.DeleteReminderUseCase
 import com.swagatmali.remider.domain.usecase.GetReminderByIdUseCase
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 
@@ -73,13 +75,30 @@ class ReminderListViewModel(
                 updateEditor { it.copy(date = intent.date) }
             is ReminderListIntent.EditorTimeChanged ->
                 updateEditor { it.copy(time = intent.time) }
+            is ReminderListIntent.EditorRepeatChanged ->
+                updateEditor { it.copy(repeat = intent.repeat) }
+            is ReminderListIntent.EditorEndEnabledChanged ->
+                updateEditor { it.copy(hasEnd = intent.enabled) }
+            is ReminderListIntent.EditorEndDateChanged ->
+                updateEditor { it.copy(endDate = intent.date) }
+            is ReminderListIntent.EditorEndTimeChanged ->
+                updateEditor { it.copy(endTime = intent.time) }
             ReminderListIntent.EditorSaveClicked -> save()
         }
     }
 
     private fun openEditorForNew() {
         val now = nowLocal()
-        _state.update { it.copy(editor = EditorState(date = now.date, time = now.time)) }
+        _state.update {
+            it.copy(
+                editor = EditorState(
+                    date = now.date,
+                    time = now.time,
+                    endDate = now.date,
+                    endTime = now.time,
+                ),
+            )
+        }
     }
 
     private fun openEditorForEdit(id: ReminderId) {
@@ -89,6 +108,7 @@ class ReminderListViewModel(
                 _effects.send(ReminderListEffect.ShowMessage("Reminder not found"))
                 return@launch
             }
+            val end = reminder.repeatUntil?.toLocalDateTime(reminder.timeZone)
             _state.update {
                 it.copy(
                     editor = EditorState(
@@ -97,6 +117,10 @@ class ReminderListViewModel(
                         notes = reminder.notes.orEmpty(),
                         date = reminder.dueDateTime.date,
                         time = reminder.dueDateTime.time,
+                        repeat = reminder.repeat,
+                        hasEnd = end != null,
+                        endDate = end?.date ?: reminder.dueDateTime.date,
+                        endTime = end?.time ?: reminder.dueDateTime.time,
                     ),
                 )
             }
@@ -112,11 +136,17 @@ class ReminderListViewModel(
         val timeZone = TimeZone.currentSystemDefault()
         val dueDateTime = LocalDateTime(editor.date, editor.time)
         val cleanNotes = editor.notes.ifBlank { null }
+        val repeat = editor.repeat
+        val repeatUntil = if (repeat.repeats && editor.hasEnd) {
+            LocalDateTime(editor.endDate, editor.endTime).toInstant(timeZone)
+        } else {
+            null
+        }
 
         viewModelScope.launch {
             updateEditor { it.copy(isSaving = true) }
             val result: Result<Unit> = if (editor.editingId == null) {
-                createReminder(editor.title, cleanNotes, dueDateTime, timeZone).map { }
+                createReminder(editor.title, cleanNotes, dueDateTime, timeZone, repeat, repeatUntil).map { }
             } else {
                 val original = getReminderById(editor.editingId)
                 if (original == null) {
@@ -128,6 +158,8 @@ class ReminderListViewModel(
                             notes = cleanNotes,
                             dueDateTime = dueDateTime,
                             timeZone = timeZone,
+                            repeat = repeat,
+                            repeatUntil = repeatUntil,
                         ),
                     )
                 }

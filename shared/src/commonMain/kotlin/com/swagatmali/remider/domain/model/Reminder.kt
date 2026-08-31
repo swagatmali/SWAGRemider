@@ -29,6 +29,25 @@ data class Reminder(
     val notes: String? = null,
     val dueDateTime: LocalDateTime,
     val timeZone: TimeZone,
+    /**
+     * Optional one-off override of the firing time, set by "snooze". When
+     * non-null the scheduler fires at this absolute instant instead of deriving
+     * one from [dueDateTime]; it is cleared when the reminder is edited. Persisted
+     * so a snooze survives process death and device reboot.
+     */
+    val snoozedUntil: Instant? = null,
+    /**
+     * Repeat cadence. [RepeatInterval.NONE] (default) = fires once. When it
+     * repeats, each firing arms the next occurrence until [repeatUntil] passes or
+     * the reminder is marked completed — whichever comes first.
+     */
+    val repeat: RepeatInterval = RepeatInterval.NONE,
+    /**
+     * Optional end bound for a repeating reminder: the series stops once the next
+     * occurrence would fall after this instant. Null = no time limit (repeats
+     * until marked done). Ignored when [repeat] is [RepeatInterval.NONE].
+     */
+    val repeatUntil: Instant? = null,
     val isCompleted: Boolean = false,
     val createdAt: Instant,
     val updatedAt: Instant,

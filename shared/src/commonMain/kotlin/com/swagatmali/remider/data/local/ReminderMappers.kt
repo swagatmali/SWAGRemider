@@ -3,6 +3,7 @@ package com.swagatmali.remider.data.local
 import com.swagatmali.remider.db.ReminderEntity
 import com.swagatmali.remider.domain.model.Reminder
 import com.swagatmali.remider.domain.model.ReminderId
+import com.swagatmali.remider.domain.model.RepeatInterval
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
@@ -22,4 +23,7 @@ internal fun ReminderEntity.toDomain(): Reminder = Reminder(
     createdAt = Instant.parse(createdAt),
     updatedAt = Instant.parse(updatedAt),
     isDeleted = isDeleted != 0L,
+    snoozedUntil = snoozedUntil?.let { Instant.parse(it) },
+    repeat = repeatInterval?.let { RepeatInterval.valueOf(it) } ?: RepeatInterval.NONE,
+    repeatUntil = repeatUntil?.let { Instant.parse(it) },
 )

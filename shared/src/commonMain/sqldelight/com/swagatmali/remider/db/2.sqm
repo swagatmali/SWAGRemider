@@ -1,0 +1,6 @@
+-- Migration v2 -> v3: recurring reminders.
+--   repeatInterval : nullable RepeatInterval.name (NULL = does not repeat)
+--   repeatUntil    : nullable ISO-8601 Instant end bound (NULL = no time limit)
+-- Existing rows default to NULL for both (one-off reminders, unchanged behaviour).
+ALTER TABLE ReminderEntity ADD COLUMN repeatInterval TEXT;
+ALTER TABLE ReminderEntity ADD COLUMN repeatUntil TEXT;

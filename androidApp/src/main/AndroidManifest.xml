@@ -39,6 +39,18 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <!-- Handles the notification's quick snooze buttons (10 min / 1 hour) -->
+        <receiver
+            android:name="com.swagatmali.remider.notification.ReminderActionReceiver"
+            android:exported="false" />
+
+        <!-- Full snooze-duration picker opened by the notification's "More…" button -->
+        <activity
+            android:name="com.swagatmali.remider.notification.SnoozePickerActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
     </application>
 
 </manifest>
